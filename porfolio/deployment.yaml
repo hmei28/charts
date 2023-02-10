@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "names.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "labels.standard" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "labels.matchLabels" . | nindent 6 }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels: {{- include "labels.standard" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: portfolio-preconfig
+          imagePullPolicy: "{{ .Values.image.imagePullPolicy}}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: DEBUG
+              value: "{{ ternary "true" "false" .Values.image.debug | quote }}"
+            - name: DB_HOST
+              value: {{ include "portfolio.postgresql.fullname" . | quote}}
+            - name: DB_NAME
+              value: {{ include "portfolio.databaseName" . | quote}}
+            - name: DB_USER
+              value: {{ include "portfolio.databaseUser" . | quote}}
+            - name: DB_PORT
+              value: {{ include "portfolio.databasePort" . | quote}}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.databaseSecretName" . }}
+                  key: password
+          envFrom:
+            - secretRef:
+                name: {{ include "portfolio.postgresql.fullname" . | quote}}
+          envFrom:
+            - secretRef:
+                name: portfolio
+          command:
+            - bash
+            - -c
+            - python3 manage.py migrate && python3 manage.py managesuperuser
+
+      containers:
+        - name: portfolio
+          image: hmei28/portfolio:latest
+          env:
+            - name: DEBUG
+              value: "{{ ternary "true" "false" .Values.image.debug | quote }}"
+            - name: DB_HOST
+              value: {{ include "portfolio.postgresql.fullname" . | quote}}
+            - name: DB_NAME
+              value: {{ include "portfolio.databaseName" . | quote}}
+            - name: DB_USER
+              value: {{ include "portfolio.databaseUser" . | quote}}
+            - name: DB_PORT
+              value: {{ include "portfolio.databasePort" . | quote}}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.databaseSecretName" . }}
+                  key: password
+          envFrom:
+            - secretRef:
+                name: {{ include "portfolio.postgresql.fullname" . | quote}}
+          command:
+            - bash
+            - -c
+            - gunicorn --bind 0.0.0.0:8000 portfolio.wsgi
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - mountPath: /app/medias
+              name: portfolio-data
+              subPath: medias
+
+      volumes:
+      - name: portfolio-data
+        persistentVolumeClaim:
+          claimName: portfolio

@@ -1,0 +1,23 @@
+image:
+  registry: docker.io
+  repository: hmei28/portfolio
+  tag: latest
+  imagePullPolicy: "Always"
+
+  # Enable debug mode for django 
+  debug: false
+
+replicaCount: 1
+
+
+postgresql:
+  enabled: true
+
+  auth:
+    postgresPassword: ""
+    database: "portfolio"
+    username: "svc_portfolio"
+    password: ""
+
+## @param global.postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials (overrides `auth.existingSecret`).
+    existingSecret: ""
