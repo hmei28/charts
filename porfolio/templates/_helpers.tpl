@@ -81,11 +81,7 @@ Return the Postgresql Hostname
 Return the Postgresql Port
 */}}
 {{- define "portfolio.databasePort" -}}
-{{- if .Values.postgresql.enabled }}
     {{- printf "5432" -}}
-{{- else -}}
-    {{- printf "%d" (.Values.externalDatabase.port | int ) -}}
-{{- end -}}
 {{- end -}}
 
 {{/*
@@ -121,5 +117,78 @@ Return the postgresql Secret Name
     {{- else -}}
         {{- printf "%s" (include "portfolio.postgresql.fullname" .) -}}
     {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the Portfolio Secret Name
+*/}}
+{{- define "portfolio.secretName" -}}
+{{- if .Values.existingSecret }}
+    {{- printf "%s" .Values.existingSecret -}}
+{{- else -}}
+    {{- printf "%s" (include "names.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "secret.generatePassword" -}}
+{{ randAlphaNum 20 | b64enc }}
+{{- end -}}
+
+
+{{/*
+Returns true if the ingressClassname field is supported
+*/}}
+{{- define "ingress.apiVersion" -}}
+{{- if .Values.ingress -}}
+{{- if .Values.ingress.apiVersion -}}
+{{- printf "%s" .Values.ingress.apiVersion -}}
+{{- else if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+{{- print "networking.k8s.io/v1" -}}
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+{{- print "networking.k8s.io/v1beta1" -}}
+{{- else -}}
+{{- print "extensions/v1beta1" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Returns true if the ingressClassname field is supported
+Usage:
+{{ include "ingress.supportsIngressClassname" . }}
+*/}}
+{{- define "common.ingress.supportsIngressClassname" -}}
+{{- if semverCompare "<1.18-0" .Capabilities.KubeVersion.GitVersion -}}
+{{- print "false" -}}
+{{- else -}}
+{{- print "true" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Print "true" if the API pathType field is supported
+Usage:
+{{ include "ingress.supportsPathType" . }}
+*/}}
+{{- define "ingress.supportsPathType" -}}
+{{- if semverCompare "<1.18-0" .Capabilities.KubeVersion.GitVersion  -}}
+{{- print "false" -}}
+{{- else -}}
+{{- print "true" -}}
+{{- end -}}
+{{- end -}}
+
+
+{{/*
+Return true if cert-manager required annotations for TLS signed
+certificates are set in the Ingress annotations
+Ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
+Usage:
+{{ include "ingress.certManagerRequest" ( dict "annotations" .Values.path.to.the.ingress.annotations ) }}
+*/}}
+{{- define "ingress.certManagerRequest" -}}
+{{ if or (hasKey .annotations "cert-manager.io/cluster-issuer") (hasKey .annotations "cert-manager.io/issuer") (hasKey .annotations "kubernetes.io/tls-acme") }}
+    {{- true -}}
 {{- end -}}
 {{- end -}}

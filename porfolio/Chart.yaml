@@ -4,10 +4,9 @@ description: A Helm chart for portfolio of hmei28
 
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+appVersion: "0.1.0"
 dependencies:
-- name: common
+- condition: postgresql.enabled
+  name: postgresql
   repository: https://charts.bitnami.com/bitnami
-  tags:
-  - bitnami-common
-  version: 2.x.x
+  version: 12.x.x
