@@ -1,0 +1,12 @@
+apiVersion: v2
+name: porfolio
+description: A Helm chart for portfolio of hmei28
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+- condition: postgresql.enabled
+  name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.x.x

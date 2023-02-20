@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "names.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "labels.standard" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "labels.matchLabels" . | nindent 6 }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels: {{- include "labels.standard" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: portfolio-preconfig
+          imagePullPolicy: "{{ .Values.image.imagePullPolicy}}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: DB_HOST
+              value: {{ include "portfolio.postgresql.fullname" . | quote}}
+            - name: DB_NAME
+              value: {{ include "portfolio.databaseName" . | quote}}
+            - name: DB_USER
+              value: {{ include "portfolio.databaseUser" . | quote}}
+            - name: DB_PORT
+              value: {{ include "portfolio.databasePort" . | quote}}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.databaseSecretName" . }}
+                  key: password
+            - name: DJANGO_SUPERUSER_USERNAME
+              value: {{ .Values.portfolioSuperUserName | quote }}
+            - name: DJANGO_SUPERUSER_EMAIL
+              value: {{ .Values.portfolioSuperUserMail | quote}}
+            - name: DJANGO_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "portfolio.secretName" . }}
+                  key: portfolioSuperUserPassword
+          command:
+            - bash
+            - -c
+            - python3 manage.py migrate && python3 manage.py managesuperuser
+
+      containers:
+        - name: portfolio
+          imagePullPolicy: "{{ .Values.image.imagePullPolicy}}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: DEBUG
+              value: "{{ ternary "true" "false" .Values.image.debug }}"
+            - name: ALLOWED_HOSTS
+              value: {{ .Values.hostname | quote}}
+            - name: DB_HOST
+              value: {{ include "portfolio.postgresql.fullname" . | quote}}
+            - name: DB_NAME
+              value: {{ include "portfolio.databaseName" . | quote}}
+            - name: DB_USER
+              value: {{ include "portfolio.databaseUser" . | quote}}
+            - name: DB_PORT
+              value: {{ include "portfolio.databasePort" . | quote}}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "postgresql.databaseSecretName" . }}
+                  key: password
+            {{- if .Values.configMail.enabled }}
+            - name: EMAIL_HOST
+              value: {{ .Values.configMail.host | quote}}
+            - name: EMAIL_HOST_USER
+              value: {{ .Values.configMail.hostUser | quote}}
+            - name: EMAIL_USE_TLS
+              value: {{ .Values.configMail.tlsOption | quote}}
+            - name: EMAIL_PORT
+              value: {{ .Values.configMail.port | quote}}
+            - name: DEFAULT_EMAIL_RECIPIENT
+              value: {{ .Values.configMail.emailRecipient | quote}}
+            - name: EMAIL_HOST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "portfolio.secretName" . }}
+                  key: emailPassword
+            {{- end }}
+          command:
+            - bash
+            - -c
+            - gunicorn --bind 0.0.0.0:{{ .Values.containerPorts }} portfolio.wsgi
+          ports:
+            - containerPort: {{ .Values.containerPorts }}
+          volumeMounts:
+            - mountPath: /app/medias
+              name: portfolio-data
+              subPath: medias   
+      volumes:
+        - name: portfolio-data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "names.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
