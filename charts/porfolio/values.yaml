@@ -1,7 +1,7 @@
 image:
   registry: docker.io
   repository: hmei28/portfolio
-  tag: latest
+  tag: 1.0.0
   imagePullPolicy: "Always"
 
   # Enable debug mode for django 
