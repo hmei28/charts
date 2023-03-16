@@ -1,0 +1,19 @@
+apiVersion: v1
+entries:
+  porfolio:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2023-03-16T21:59:30.49527215Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 12.x.x
+    description: A Helm chart for portfolio of hmei28
+    digest: 465fba3f0b20e3fcb003ecf3622cc8e121c9c99deb361cc90c5f4ba34bd4ae3d
+    name: porfolio
+    type: application
+    urls:
+    - https://github.com/hmei28/charts/releases/download/porfolio-1.0.0/porfolio-1.0.0.tgz
+    version: 1.0.0
+generated: "2023-03-16T21:59:30.49528425Z"
