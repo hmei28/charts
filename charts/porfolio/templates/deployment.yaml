@@ -86,7 +86,9 @@ spec:
           command:
             - bash
             - -c
-            - gunicorn --bind 0.0.0.0:{{ .Values.containerPorts }} portfolio.wsgi
+            - >-
+              python manage.py collectstatic --noinput &&
+              gunicorn --bind 0.0.0.0:{{ .Values.containerPorts }} portfolio.wsgi
           ports:
             - containerPort: {{ .Values.containerPorts }}
           volumeMounts:
