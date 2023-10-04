@@ -3,10 +3,10 @@ name: porfolio
 description: A Helm chart for portfolio of hmei28
 
 type: application
-version: 1.0.0
+version: 1.0.1
 appVersion: "1.0.0"
 dependencies:
 - condition: postgresql.enabled
   name: postgresql
   repository: https://charts.bitnami.com/bitnami
-  version: 12.x.x
+  version: 13.x.x
