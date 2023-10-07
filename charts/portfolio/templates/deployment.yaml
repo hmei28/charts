@@ -42,8 +42,11 @@ spec:
           command:
             - bash
             - -c
-            - python3 manage.py migrate && python3 manage.py managesuperuser
-
+            - >
+              until nc -z -w 2 {{ include "portfolio.postgresql.fullname" . | quote}} {{ include "portfolio.databasePort" . | quote}} && python3 manage.py migrate && python3 manage.py managesuperuser;
+                do echo 'waiting for postrgress';
+                sleep 2;
+              done
       containers:
         - name: portfolio
           imagePullPolicy: "{{ .Values.image.imagePullPolicy}}"
@@ -87,6 +90,9 @@ spec:
             - bash
             - -c
             - >-
+{{- if or .Values.ingress.tls (include "ingress.certManagerRequest" ( dict "annotations" .Values.ingress.annotations ))  }}
+              echo 'SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")' >> /app/portfolio/settings.py;
+{{- end }}
               python manage.py collectstatic --noinput &&
               gunicorn --bind 0.0.0.0:{{ .Values.containerPorts }} portfolio.wsgi
           ports:
